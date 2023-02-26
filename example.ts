@@ -12,7 +12,7 @@ const auth = pubSub({
       token: z.string()
     }),
   },
-  validate: true
+  validate: true,
 })
 
 auth.listen("LOG_IN", (details) => {

@@ -2,7 +2,7 @@ import { z } from "zod"
 
 export type PubSubEvents = Record<string, z.ZodType<any, any>>
 
-export type PubSubConfig<Events extends PubSubEvents> = {
+export type PubSubConfig<Events extends PubSubEvents, EventName = keyof Events> = {
 
   /**
    * Define the events you want to use,
@@ -16,6 +16,13 @@ export type PubSubConfig<Events extends PubSubEvents> = {
    * If you trust the input, don't bother as this just adds overhead
    */
   validate?: boolean
+
+  /**
+   * Overwrite the default crypto module if you need too
+   */
+  crypto?: {
+    randomUUID: () => string
+  }
 }
 
 /**
@@ -35,6 +42,7 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
 
   const listeners = new Map<keyof Events, EventCallback<EventName>[]>()
   const allListeners = new Set<EventCallback<EventName>>()
+  const remoteListeners = new Map<string, (event: EventName, data: z.infer<Events[EventName]>) => void>()
 
   /**
    * Subscribe to the event, the callback will be called when a new event is published
@@ -88,24 +96,53 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
   /**
    * Publish an event, all listeners to the event will be called
    */
-  const publish = <Name extends EventName>(event: Name, data: z.infer<Events[Name]>) => {
+  const publish = <Name extends EventName>(event: Name, data: z.infer<Events[Name]>, _config?: { remoteId: string }) => {
     const currentListeners = listeners.get(event) || []
-    if (config.validate) {
-      const validatedData = config.events[event].parse(data)
-      currentListeners.forEach((listener) => {
-        listener(validatedData, event)
-      })
-      for (const listener of allListeners) {
-        listener(validatedData, event)
-      }
-    } else {
-      currentListeners.forEach((listener) => {
-        listener(data, event)
-      })
-      for (const listener of allListeners) {
-        listener(data, event)
+    const validatedData = config.validate ? config.events[event].parse(data) : data
+    currentListeners.forEach((listener) => {
+      listener(validatedData, event)
+    })
+    for (const listener of allListeners) {
+      listener(validatedData, event)
+    }
+    for (const [remoteId, listener] of remoteListeners) {
+      if (remoteId !== _config?.remoteId) {
+        listener(event, validatedData)
       }
     }
+  }
+
+  type Connections = {
+
+    onSendMessage: <Name extends EventName = EventName>(event: Name, payload: z.infer<Events[Name]>) => void;
+
+    onReceiveMessage: <Name extends EventName = EventName>(publish: (event: Name, data: z.infer<Events[Name]>) => void, validate: (eventName: string) => Name) => (void | (() => void));
+
+  }
+
+  const validate = (eventName: string): EventName => {
+    const names = Object.keys(config.events)
+    if (!names.includes(eventName)) {
+      throw new Error(`Event ${eventName} does not exist`)
+    }
+    return eventName as EventName
+  }
+
+  const connect = (conn: Connections) => {
+
+    const remoteId = config.crypto ? config.crypto.randomUUID() : crypto.randomUUID();
+
+    remoteListeners.set(remoteId, conn.onSendMessage)
+
+    const unSub = conn.onReceiveMessage((event, data) => {
+      publish(event, data, { remoteId })
+    }, validate)
+
+    return () => {
+      remoteListeners.delete(remoteId)
+      unSub && unSub()
+    }
+
   }
 
   return {
@@ -128,6 +165,8 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
     publish,
     pub: publish,
     send: publish,
+
+    connect,
 
     _events: Object.keys(config.events) as EventName[]
   }
