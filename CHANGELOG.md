@@ -1,5 +1,11 @@
 # zod-pubsub
 
+## 1.1.1
+
+### Patch Changes
+
+- 4adde40: Use Sets instead of Arrays
+
 ## 1.1.0
 
 ### Minor Changes
