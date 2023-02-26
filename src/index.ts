@@ -40,7 +40,7 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
   type EventName = keyof Events
   type EventCallback<Name extends EventName = EventName> = (data: z.infer<Events[Name]>, event: Name) => void | Promise<void>
 
-  const listeners = new Map<keyof Events, EventCallback<EventName>[]>()
+  const listeners = new Map<keyof Events, Set<EventCallback<EventName>>>()
   const allListeners = new Set<EventCallback<EventName>>()
   const remoteListeners = new Map<string, (event: EventName, data: z.infer<Events[EventName]>) => void>()
 
@@ -48,16 +48,17 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
    * Subscribe to the event, the callback will be called when a new event is published
    */
   const subscribe = <Name extends EventName>(event: Name, callback: EventCallback<Name>) => {
-    const currentListeners = (listeners.get(event) ?? []) as EventCallback<Name>[]
-    (listeners as Map<keyof Events, EventCallback<Name>[]>).set(event, [...currentListeners, callback])
+    const currentListeners = listeners.get(event) ?? new Set();
+    currentListeners.add(callback as EventCallback);
+    listeners.set(event, currentListeners)
 
     /**
      * UnSubscribe from the event
      */
     return () => {
-      const currentListeners = (listeners.get(event) ?? []) as EventCallback<Name>[]
-      const newListeners  = currentListeners.filter((listener) => listener !== callback) as EventCallback<Name>[]
-      (listeners as Map<keyof Events, EventCallback<Name>[]>).set(event, newListeners)
+      const currentListeners = listeners.get(event) ?? new Set();
+      currentListeners.delete(callback as EventCallback)
+      listeners.set(event, currentListeners)
     }
   }
 
@@ -97,11 +98,11 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
    * Publish an event, all listeners to the event will be called
    */
   const publish = <Name extends EventName>(event: Name, data: z.infer<Events[Name]>, _config?: { remoteId: string }) => {
-    const currentListeners = listeners.get(event) || []
     const validatedData = config.validate ? config.events[event].parse(data) : data
-    currentListeners.forEach((listener) => {
+    const currentListeners = listeners.get(event) ?? new Set();
+    for (const listener of currentListeners) {
       listener(validatedData, event)
-    })
+    }
     for (const listener of allListeners) {
       listener(validatedData, event)
     }
