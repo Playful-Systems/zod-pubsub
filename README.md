@@ -84,6 +84,9 @@ messages.connect({
       if (!socket.OPEN) return;
 
       // send the event and data to the client
+      // if you only want to send to specific clients, add a field to the data object
+      // for example every event might store a user_id, and using a map that stores the user_id to connection id
+      // you can then send to specific clients
       socket.send(JSON.stringify({ event, data }))
     })
   },
