@@ -1,0 +1,60 @@
+{
+  "name": "zod-pubsub",
+  "version": "0.0.1",
+  "description": "A Pub -> Sub module using Zod schemas for typesafety",
+  "private": false,
+  "scripts": {
+    "build": "microbundle",
+    "dev": "microbundle watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.modern.js"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.module.js",
+  "unpkg": "./dist/index.umd.js",
+  "types": "dist/index.d.ts",
+  "repository": "https://github.com/Playful-Systems/zod-pubsub",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "zod",
+    "pubsub",
+    "pub",
+    "sub",
+    "pub/sub",
+    "pub-sub",
+    "publish",
+    "subscribe",
+    "publish/subscribe",
+    "publish-subscribe",
+    "types",
+    "typesafety",
+    "typescript"
+  ],
+  "author": {
+    "name": "Playful Systems",
+    "email": "packages@playful-systems.com.au",
+    "url": "https://playful-systems.com.au/"
+  },
+  "contributors": [
+    "Nick Wylynko <nick@wylynko.com> (https://nick.wylynko.com/)"
+  ],
+  "license": "MIT",
+  "sideEffects": false,
+  "packageManager": "pnpm@7.27.1",
+  "peerDependencies": {
+    "zod": "^3.19.0"
+  },
+  "devDependencies": {
+    "microbundle": "^0.15.1",
+    "typescript": "^4.9.5",
+    "zod": "^3.20.6"
+  }
+}
