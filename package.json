@@ -8,7 +8,8 @@
     "dev": "vitest",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "release": "pnpm run typecheck && pnpm run test && pnpm run build && changeset publish"
+    "release": "pnpm run typecheck && pnpm run test && pnpm run build && changeset publish",
+    "new-version": "changeset"
   },
   "type": "module",
   "source": "src/index.ts",
