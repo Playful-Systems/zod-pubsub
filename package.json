@@ -4,12 +4,12 @@
   "description": "A Pub -> Sub module using Zod schemas for typesafety",
   "private": false,
   "scripts": {
-    "build": "microbundle",
-    "dev": "vitest",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "release": "pnpm run typecheck && pnpm run test && pnpm run build && changeset publish",
-    "new-version": "changeset"
+    "build": "scriptful build",
+    "dev": "scriptful dev",
+    "typecheck": "scriptful typecheck",
+    "test": "scriptful test",
+    "release": "scriptful release",
+    "new-version": "scriptful new-version"
   },
   "type": "module",
   "source": "src/index.ts",
@@ -58,6 +58,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.26.0",
     "microbundle": "^0.15.1",
+    "scriptful": "^1.2.1",
     "typescript": "^4.9.5",
     "vitest": "^0.29.1",
     "zod": "^3.20.6"
