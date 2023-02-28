@@ -76,7 +76,7 @@ const connections = new Map<string, WebSocket>();
 messages.connect({
 
   // called when a message is published on the server
-  onSendMessage: (event, data) => {
+  onSendMessage: (data, event) => {
     
     // send the message to all active connections
     connections.forEach((socket) => {

@@ -2,7 +2,7 @@ import { z } from "zod"
 
 export type PubSubEvents = Record<string, z.ZodType<any, any>>
 
-export type PubSubConfig<Events extends PubSubEvents, EventName = keyof Events> = {
+export type PubSubConfig<Events extends PubSubEvents> = {
 
   /**
    * Define the events you want to use,
@@ -38,26 +38,31 @@ export type inferEvents<pubsub extends ReturnType<typeof pubSub>> = pubsub["_eve
 export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>) => {
 
   type EventName = keyof Events
-  type EventCallback<Name extends EventName = EventName> = (data: z.infer<Events[Name]>, event: Name) => void | Promise<void>
+  type EventCallback<Name extends EventName = EventName> = (data: z.infer<Events[Name]>, event: Name, remoteId: string) => void | Promise<void>
 
-  const listeners = new Map<keyof Events, Set<EventCallback<EventName>>>()
-  const allListeners = new Set<EventCallback<EventName>>()
-  const remoteListeners = new Map<string, (event: EventName, data: z.infer<Events[EventName]>) => void>()
+  type ListenerId = string
+  const listeners = new Map<keyof Events, Map<ListenerId, EventCallback>>()
+  const allListeners = new Map<ListenerId, EventCallback>()
+  const remoteListeners = new Map<ListenerId, EventCallback>()
+
+  const generateListenerId = () => config.crypto ? config.crypto.randomUUID() : crypto.randomUUID();
 
   /**
    * Subscribe to the event, the callback will be called when a new event is published
    */
   const subscribe = <Name extends EventName>(event: Name, callback: EventCallback<Name>) => {
-    const currentListeners = listeners.get(event) ?? new Set();
-    currentListeners.add(callback as EventCallback);
+    const listenerId = generateListenerId();
+
+    const currentListeners = listeners.get(event) ?? new Map<ListenerId, EventCallback>();
+    currentListeners.set(listenerId, callback as EventCallback);
     listeners.set(event, currentListeners)
 
     /**
      * UnSubscribe from the event
      */
     return () => {
-      const currentListeners = listeners.get(event) ?? new Set();
-      currentListeners.delete(callback as EventCallback)
+      const currentListeners = listeners.get(event) ?? new Map<ListenerId, EventCallback>();
+      currentListeners.delete(listenerId)
       listeners.set(event, currentListeners)
     }
   }
@@ -84,39 +89,58 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
    * Subscribe to all events, the callback will be called when any new event is published
    */
   const subscribeAll = (callback: EventCallback) => {
-    allListeners.add(callback)
+    const listenerId = generateListenerId();
+
+    allListeners.set(listenerId, callback)
 
     /**
      * UnSubscribe from the events
      */
     return () => {
-      allListeners.delete(callback)
+      allListeners.delete(listenerId)
     }
   }
 
   /**
    * Publish an event, all listeners to the event will be called
    */
-  const publish = <Name extends EventName>(event: Name, data: z.infer<Events[Name]>, _config?: { remoteId: string }) => {
+  const publish = <Name extends EventName>(event: Name, data: z.infer<Events[Name]>, options?: { listenerId: string }) => {
     const validatedData = config.validate ? config.events[event].parse(data) : data
-    const currentListeners = listeners.get(event) ?? new Set();
-    for (const listener of currentListeners) {
-      listener(validatedData, event)
+    
+    const currentListeners = listeners.get(event) ?? new Map() as Map<string, EventCallback<keyof Events>>
+
+    for (const [listenerId, listener] of currentListeners) {
+      if (listenerId !== options?.listenerId) {
+        listener(validatedData, event, listenerId)
+      }
     }
-    for (const listener of allListeners) {
-      listener(validatedData, event)
+    for (const [listenerId, listener] of allListeners) {
+      if (listenerId !== options?.listenerId) {
+        listener(validatedData, event, listenerId)
+      }
     }
-    for (const [remoteId, listener] of remoteListeners) {
-      if (remoteId !== _config?.remoteId) {
-        listener(event, validatedData)
+    for (const [listenerId, listener] of remoteListeners) {
+      if (listenerId !== options?.listenerId) {
+        listener(validatedData, event, listenerId)
       }
     }
   }
 
   type Connections = {
 
-    onSendMessage: <Name extends EventName = EventName>(event: Name, payload: z.infer<Events[Name]>) => void;
+    /**
+     * Called on every single message emit, use this to send the message to the other side.
+     * You need to ensure you encode this in a way that the other side can decode.
+     */
+    onSendMessage: <Name extends EventName = EventName>(payload: z.infer<Events[Name]>, event: Name) => void;
 
+    /**
+     * This is essentially a setup function, its called once when this .connect() method is called.
+     * This passes through two functions, a publish function and a validate function.
+     * Add some kind of event listen that will run a callback when a message is received,
+     * then in that callback, call the publish function with the event name and data.
+     * To ensure the event name is valid, use the validate function.
+     */
     onReceiveMessage: <Name extends EventName = EventName>(publish: (event: Name, data: z.infer<Events[Name]>) => void, validate: (eventName: string) => Name) => (void | (() => void));
 
   }
@@ -131,16 +155,16 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
 
   const connect = (conn: Connections) => {
 
-    const remoteId = config.crypto ? config.crypto.randomUUID() : crypto.randomUUID();
+    const listenerId = generateListenerId();
 
-    remoteListeners.set(remoteId, conn.onSendMessage)
+    remoteListeners.set(listenerId, conn.onSendMessage)
 
     const unSub = conn.onReceiveMessage((event, data) => {
-      publish(event, data, { remoteId })
+      publish(event, data, { listenerId })
     }, validate)
 
     return () => {
-      remoteListeners.delete(remoteId)
+      remoteListeners.delete(listenerId)
       unSub && unSub()
     }
 
@@ -166,9 +190,11 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
     publish,
     pub: publish,
     send: publish,
+    emit: publish,
 
     connect,
 
+    schemas: config.events,
     _events: Object.keys(config.events) as EventName[]
   }
 }

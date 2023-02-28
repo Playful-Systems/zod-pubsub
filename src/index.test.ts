@@ -11,16 +11,17 @@ it("should listen to event", () => {
         name: z.string(),
         age: z.number(),
       })
-    }
+    },
+    crypto
   })
   
   const listener = vitest.fn()
 
-  listen("birthday", listener)
+  listen("birthday", (data) => listener(data))
 
   publish("birthday", { name: "John", age: 20 })
 
-  expect(listener).toHaveBeenCalledWith({ name: "John", age: 20 }, "birthday")
+  expect(listener).toHaveBeenCalledWith({ name: "John", age: 20 })
 })
 
 it("should wrap non typesafe event-emitters", () => {
@@ -38,7 +39,7 @@ it("should wrap non typesafe event-emitters", () => {
   const events = new EventEmitter()
 
   connect({
-    onSendMessage: (event, payload) => {
+    onSendMessage: (payload, event) => {
       events.emit("message", { event, payload })
     },
     onReceiveMessage: (publish, validate) => {
@@ -48,18 +49,18 @@ it("should wrap non typesafe event-emitters", () => {
     }
   })
   
-  // from typesafe to non typesafe
+  // publishing from inside to out
   const message1 = vitest.fn()
-  events.on("message", message1)
+  events.on("message", (message) => message1(message))
   publish("birthday", { name: "Bob", age: 25 })
   expect(message1).toHaveBeenCalledWith({ event: "birthday", payload: { name: "Bob", age: 25 }})
   events.off("message", message1)
 
-  // from non typesafe to typesafe (validating input)
+  // listening inside from out
   const message2 = vitest.fn()
-  const unSub = listen("birthday", message2)
+  const unSub = listen("birthday", (message) => message2(message))
   events.emit("message", { event: "birthday", payload: { name: "John", age: 20 }})
-  expect(message2).toHaveBeenCalledWith({ name: "John", age: 20 }, "birthday")
+  expect(message2).toHaveBeenCalledWith({ name: "John", age: 20 })
   unSub()
   
 })
