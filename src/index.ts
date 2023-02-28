@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { createQueue } from "./queue"
 
 export type PubSubEvents = Record<string, z.ZodType<any, any>>
 
@@ -101,29 +102,49 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
     }
   }
 
-  /**
-   * Publish an event, all listeners to the event will be called
-   */
-  const publish = <Name extends EventName>(event: Name, data: z.infer<Events[Name]>, options?: { listenerId: string }) => {
-    const validatedData = config.validate ? config.events[event].parse(data) : data
-    
+  type QueueItem<Name extends EventName> = { 
+    event: Name, 
+    data: z.infer<Events[Name]>
+    options?: { listenerId: string }
+  }
+
+  const publishHandler = ({ event, data, options }: QueueItem<EventName>) => {
     const currentListeners = listeners.get(event) ?? new Map() as Map<string, EventCallback<keyof Events>>
+
+    // console.log({
+    //   currentListeners,
+    //   allListeners,
+    //   remoteListeners,
+    //   event,
+    //   options
+    // })
 
     for (const [listenerId, listener] of currentListeners) {
       if (listenerId !== options?.listenerId) {
-        listener(validatedData, event, listenerId)
+        listener(data, event, listenerId)
       }
     }
     for (const [listenerId, listener] of allListeners) {
       if (listenerId !== options?.listenerId) {
-        listener(validatedData, event, listenerId)
+        listener(data, event, listenerId)
       }
     }
     for (const [listenerId, listener] of remoteListeners) {
       if (listenerId !== options?.listenerId) {
-        listener(validatedData, event, listenerId)
+        listener(data, event, listenerId)
       }
     }
+  }
+
+  const queue = createQueue<QueueItem<EventName>>(publishHandler)
+
+  /**
+   * Publish an event, all listeners to the event will be called
+   */
+  const publish = <Name extends EventName>(event: Name, data: z.infer<Events[Name]>, options?: { listenerId: string }) => {
+    const validatedData: z.infer<Events[Name]> = config.validate ? config.events[event].parse(data) : data
+
+    queue.add({ event, data: validatedData, options })
   }
 
   type Connections = {

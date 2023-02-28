@@ -24,8 +24,8 @@ type Store = {
   messages: Map<string, z.infer<typeof messageSchema>>
 }
 
-eventsPubSub.listenAll((data, event) => {
-  console.log({event, data})
+eventsPubSub.listenAll((data, event, remoteId) => {
+  console.log('[listenAll]', { event, remoteId })
 })
 
 const useWebsocketStore = create<Store>()(
@@ -35,24 +35,24 @@ const useWebsocketStore = create<Store>()(
       const socket = io();
 
       socket.on("connect", () => {
-        console.log("connected");
+        console.log("[ws-client] connected");
         set({ connected: true })
       })
 
       socket.on("disconnect", () => {
-        console.log("disconnected");
+        console.log("[ws-client] disconnected");
         set({ connected: false })
       })
 
       eventsPubSub.connect({
         onSendMessage: (data, event) => {
-          console.log('onSendMessage', event)
+          console.log('[ws-client] send message', event)
           socket.emit("message", json.stringify({ event, data }))
         },
         onReceiveMessage: (publish, validate) => {
-          socket.on('message', (eventName, msg) => {
-            console.log('onReceiveMessage', eventName, msg)
+          socket.on('message', (_, msg) => {
             const { event, data } = json.parse<{ event: string, data: any }>(msg)
+            console.log('[ws-client] receive message', { event })
             publish(validate(event), data)
           })
         }
@@ -67,11 +67,11 @@ const useWebsocketStore = create<Store>()(
       eventsPubSub.listen("newMessage", (message) => {
         set(state => {
           const existing = state.messages.has(message.message_id)
-          console.log({ existing })
           if (existing) return state
+
           const newSet = new Map(state.messages)
           newSet.set(message.message_id, message)
-          console.log({ newSet })
+
           return { messages: newSet }
         })
       })
@@ -95,6 +95,6 @@ export const useMessages = () => {
 // issues
 // - [ ] maybe add a publishId, generated any time .publish is called
 // use the publishId to dedupe publish requests 
-// - [ ] use a queue system to make sure messages are sent in order
+// - [x] use a queue system to make sure messages are sent in order
 // alternatively some kind of async & await stuff
 // - [x] convert messages array to a map

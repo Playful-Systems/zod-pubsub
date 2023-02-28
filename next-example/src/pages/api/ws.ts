@@ -14,8 +14,8 @@ type CustomResponse = NextApiResponse & {
 
 registerListeners()
 
-eventsPubSub.listenAll((data, event) => {
-  console.log({event, data})
+eventsPubSub.listenAll((data, event, remoteId) => {
+  console.log('[listenAll]', { event, remoteId })
 })
 
 export default function handler(req: NextApiRequest, res: CustomResponse) {
@@ -23,20 +23,20 @@ export default function handler(req: NextApiRequest, res: CustomResponse) {
     throw new Error('res.socket is null')
   }
   if (!res.socket.server.io) {
-    console.log('*First use, starting socket.io')
+    console.log('[ws] Starting socket.io')
 
     const io = new WSServer(res.socket.server)
 
     eventsPubSub.connect({
       onSendMessage: (data, event) => {
-        console.log('onSendMessage', event)
+        console.log('[ws] send message', { event })
         io.send("message", json.stringify({ event, data }))
       },
       onReceiveMessage: (publish, validate) => {
         io.on('connection', socket => {
           socket.on('message', msg => {
-            console.log('onReceiveMessage', msg)
             const { event, data } = json.parse<{ event: string, data: any }>(msg)
+            console.log('[ws] receive message', { event })
             publish(validate(event), data)
           })
         })
@@ -46,7 +46,7 @@ export default function handler(req: NextApiRequest, res: CustomResponse) {
 
     res.socket.server.io = io
   } else {
-    console.log('socket.io already running')
+    // console.log('socket.io already running')
   }
   res.end()
 }

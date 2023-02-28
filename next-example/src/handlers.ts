@@ -15,7 +15,7 @@ export const eventsPubSub = pubSub({
 
 export const registerListeners = () => {
   eventsPubSub.listen('newMessage', (newMessage, _, listenerId) => {
-    console.log({newMessage});
+    console.log('[db listener]', { event: _, listenerId });
     run(SQL`
       INSERT INTO messages (
         message_id, 
@@ -33,8 +33,8 @@ export const registerListeners = () => {
     eventsPubSub.publish("newMessage", newMessage, { listenerId })
   })
   
-  eventsPubSub.listen('updateMessage', (updateMessage) => {
-    console.log({updateMessage});
+  eventsPubSub.listen('updateMessage', (updateMessage, _, listenerId) => {
+    console.log('[db listener]', { event: _, listenerId });
     run(SQL`
       UPDATE messages
       SET message = ${updateMessage.message}
@@ -42,8 +42,8 @@ export const registerListeners = () => {
     `)
   })
   
-  eventsPubSub.listen('deleteMessage', (deleteMessage) => {
-    console.log({deleteMessage});
+  eventsPubSub.listen('deleteMessage', (deleteMessage, _, listenerId) => {
+    console.log('[db listener]', { event: _, listenerId });
     run(SQL`
       DELETE FROM messages
       WHERE message_id = ${deleteMessage.message_id}
