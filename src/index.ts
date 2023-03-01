@@ -39,14 +39,16 @@ export type inferEvents<pubsub extends ReturnType<typeof pubSub>> = pubsub["_eve
 export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>) => {
 
   type EventName = keyof Events
-  type EventCallback<Name extends EventName = EventName> = (data: z.infer<Events[Name]>, event: Name, remoteId: string) => void | Promise<void>
+  type EventCallback<Name extends EventName = EventName> = (data: z.infer<Events[Name]>, event: Name, options: { publishId: string, listenerId: string }) => void | Promise<void>
 
   type ListenerId = string
   const listeners = new Map<keyof Events, Map<ListenerId, EventCallback>>()
   const allListeners = new Map<ListenerId, EventCallback>()
   const remoteListeners = new Map<ListenerId, EventCallback>()
 
-  const generateListenerId = () => config.crypto ? config.crypto.randomUUID() : crypto.randomUUID();
+  const generateId = config.crypto ? config.crypto.randomUUID : crypto.randomUUID;
+  const generateListenerId = () => generateId();
+  const generatePublishId = () => generateId();
 
   /**
    * Subscribe to the event, the callback will be called when a new event is published
@@ -105,7 +107,10 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
   type QueueItem<Name extends EventName> = { 
     event: Name, 
     data: z.infer<Events[Name]>
-    options?: { listenerId: string }
+    options: { 
+      listenerId?: string;
+      publishId: string;
+    }
   }
 
   const publishHandler = ({ event, data, options }: QueueItem<EventName>) => {
@@ -121,17 +126,17 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
 
     for (const [listenerId, listener] of currentListeners) {
       if (listenerId !== options?.listenerId) {
-        listener(data, event, listenerId)
+        listener(data, event, { listenerId, publishId: options.publishId })
       }
     }
     for (const [listenerId, listener] of allListeners) {
       if (listenerId !== options?.listenerId) {
-        listener(data, event, listenerId)
+        listener(data, event, { listenerId, publishId: options.publishId })
       }
     }
     for (const [listenerId, listener] of remoteListeners) {
       if (listenerId !== options?.listenerId) {
-        listener(data, event, listenerId)
+        listener(data, event, { listenerId, publishId: options.publishId })
       }
     }
   }
@@ -141,10 +146,12 @@ export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>
   /**
    * Publish an event, all listeners to the event will be called
    */
-  const publish = <Name extends EventName>(event: Name, data: z.infer<Events[Name]>, options?: { listenerId: string }) => {
+  const publish = <Name extends EventName>(event: Name, data: z.infer<Events[Name]>, options?: { listenerId?: string }) => {
     const validatedData: z.infer<Events[Name]> = config.validate ? config.events[event].parse(data) : data
 
-    queue.add({ event, data: validatedData, options })
+    const publishId = generatePublishId();
+
+    queue.add({ event, data: validatedData, options: { ...options, publishId } })
   }
 
   type Connections = {

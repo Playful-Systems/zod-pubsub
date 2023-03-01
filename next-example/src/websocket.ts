@@ -24,8 +24,8 @@ type Store = {
   messages: Map<string, z.infer<typeof messageSchema>>
 }
 
-eventsPubSub.listenAll((data, event, remoteId) => {
-  console.log('[listenAll]', { event, remoteId })
+eventsPubSub.listenAll((data, event, { listenerId }) => {
+  console.log('[listenAll]', { event, listenerId })
 })
 
 const useWebsocketStore = create<Store>()(
@@ -90,11 +90,3 @@ export const useMessages = () => {
   const messages = useWebsocketStore(state => state.messages)
   return Array.from(messages).map(([_, message]) => message).sort((a, b) => a.timestamp - b.timestamp)
 }
-
-
-// issues
-// - [ ] maybe add a publishId, generated any time .publish is called
-// use the publishId to dedupe publish requests 
-// - [x] use a queue system to make sure messages are sent in order
-// alternatively some kind of async & await stuff
-// - [x] convert messages array to a map

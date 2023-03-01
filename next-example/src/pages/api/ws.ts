@@ -14,8 +14,8 @@ type CustomResponse = NextApiResponse & {
 
 registerListeners()
 
-eventsPubSub.listenAll((data, event, remoteId) => {
-  console.log('[listenAll]', { event, remoteId })
+eventsPubSub.listenAll((data, event, { listenerId }) => {
+  console.log('[listenAll]', { event, listenerId })
 })
 
 export default function handler(req: NextApiRequest, res: CustomResponse) {
