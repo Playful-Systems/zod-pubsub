@@ -1,5 +1,11 @@
 # zod-pubsub
 
+## 2.0.0
+
+### Major Changes
+
+- 27aee5c: Use queue based system to ensure events get consumed in the correct order
+
 ## 1.1.1
 
 ### Patch Changes
