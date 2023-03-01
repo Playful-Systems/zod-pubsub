@@ -13,41 +13,40 @@ export const eventsPubSub = pubSub({
   }
 })
 
-export const registerListeners = () => {
-  eventsPubSub.listen('newMessage', (newMessage, event, { listenerId }) => {
-    console.log('[db listener]', { event, listenerId });
-    run(SQL`
-      INSERT INTO messages (
-        message_id, 
-        user_id, 
-        message, 
-        timestamp
-        )
-      VALUES (
-        ${newMessage.message_id},
-        ${newMessage.user_id},
-        ${newMessage.message}, 
-        ${newMessage.timestamp}
+eventsPubSub.listen('newMessage', (newMessage, event, { listenerId }) => {
+  console.log('[db listener]', { event, listenerId });
+  run(SQL`
+    INSERT INTO messages (
+      message_id, 
+      user_id, 
+      message, 
+      timestamp
       )
-    `)
-    eventsPubSub.publish("newMessage", newMessage, { listenerId })
-  })
-  
-  eventsPubSub.listen('updateMessage', (updateMessage, event) => {
-    console.log('[db listener]', { event });
-    run(SQL`
-      UPDATE messages
-      SET message = ${updateMessage.message}
-      WHERE message_id = ${updateMessage.message_id}
-    `)
-  })
-  
-  eventsPubSub.listen('deleteMessage', (deleteMessage, event) => {
-    console.log('[db listener]', { event });
-    run(SQL`
-      DELETE FROM messages
-      WHERE message_id = ${deleteMessage.message_id}
-    `)
-  })
-}
+    VALUES (
+      ${newMessage.message_id},
+      ${newMessage.user_id},
+      ${newMessage.message}, 
+      ${newMessage.timestamp}
+    )
+  `)
+  eventsPubSub.publish("newMessage", newMessage, { listenerId })
+})
+
+eventsPubSub.listen('updateMessage', (updateMessage, event) => {
+  console.log('[db listener]', { event });
+  run(SQL`
+    UPDATE messages
+    SET message = ${updateMessage.message}
+    WHERE message_id = ${updateMessage.message_id}
+  `)
+})
+
+eventsPubSub.listen('deleteMessage', (deleteMessage, event) => {
+  console.log('[db listener]', { event });
+  run(SQL`
+    DELETE FROM messages
+    WHERE message_id = ${deleteMessage.message_id}
+  `)
+})
+
 

@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Server } from 'node:http';
 import { Server as WSServer } from 'Socket.IO'
-import { eventsPubSub, registerListeners } from '@/handlers';
+import { eventsPubSub } from '@/handlers';
 import json from "superjson"
 
 type CustomResponse = NextApiResponse & {
@@ -11,8 +11,6 @@ type CustomResponse = NextApiResponse & {
     }
   }
 }
-
-registerListeners()
 
 eventsPubSub.listenAll((data, event, { listenerId }) => {
   console.log('[listenAll]', { event, listenerId })
