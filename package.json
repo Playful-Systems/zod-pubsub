@@ -9,7 +9,8 @@
     "typecheck": "scriptful typecheck",
     "test": "scriptful test",
     "release": "scriptful release",
-    "new-version": "scriptful new-version"
+    "new-version": "scriptful new-version",
+    "benchmark": "scriptful benchmark"
   },
   "type": "module",
   "source": "src/index.ts",

@@ -1,4 +1,4 @@
-import { parallel, scripts, sequential } from "scriptful"
+import { command, parallel, scripts, sequential } from "scriptful"
 
 export default scripts({
   build: "microbundle",
@@ -16,5 +16,25 @@ export default scripts({
     ]),
     "changeset publish"
   ]),
-  "new-version": "changeset"
+  "new-version": "changeset",
+  "benchmark": sequential([
+    command({
+      run: "tsc",
+      cwd: "benchmark"
+    }),
+    runBench('add-remove'),
+    runBench('context'),
+    runBench('emit-multiple-listeners'),
+    runBench('emit'),
+    runBench('hundreds'),
+    runBench('init'),
+    runBench('once'),
+  ])
 })
+
+function runBench(name: string) {
+  return command({
+    run: `node dist/${name}.js`,
+    cwd: "benchmark"
+  })
+}
