@@ -40,7 +40,7 @@ export default scripts({
 
 function runBench(name: string) {
   return command({
-    run: `node dist/${name}.js`,
+    run: `node dist/${name}.js important`,
     cwd: "benchmark"
   })
 }

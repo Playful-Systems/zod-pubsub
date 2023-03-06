@@ -13,6 +13,7 @@ import FE from 'fastemitter';
 import { pubSub } from 'zod-pubsub';
 import { events } from './_events';
 import crypto from "node:crypto"
+import { run } from "./options";
 
 const ctx = { foo: 'bar' };
 
@@ -43,48 +44,53 @@ eeZod.listen('foo', handle.bind(ctx));
 
 const suite = new Benchmark.Suite
 
-suite.add('Native Event Emitter', () => {
-  ee1.emit('foo');
-  ee1.emit('foo', 'bar');
-  ee1.emit('foo', 'bar', 'baz');
-  ee1.emit('foo', 'bar', 'baz', 'boom');
-})
-suite.add('EventEmitter2', () => {
-  ee2.emit('foo');
-  ee2.emit('foo', 'bar');
-  ee2.emit('foo', 'bar', 'baz');
-  ee2.emit('foo', 'bar', 'baz', 'boom');
-})
-suite.add('EventEmitter3', () => {
-  ee3.emit('foo');
-  ee3.emit('foo', 'bar');
-  ee3.emit('foo', 'bar', 'baz');
-  ee3.emit('foo', 'bar', 'baz', 'boom');
-})
-suite.add('Drip', () => {
-  drip.emit('foo');
-  drip.emit('foo', 'bar');
-  drip.emit('foo', 'bar', 'baz');
-  drip.emit('foo', 'bar', 'baz', 'boom');
-})
-suite.add('fastemitter', () => {
-  fe.emit('foo');
-  fe.emit('foo', 'bar');
-  fe.emit('foo', 'bar', 'baz');
-  fe.emit('foo', 'bar', 'baz', 'boom');
-})
-suite.add('event-emitter', () => {
-  ee.emit('foo');
-  ee.emit('foo', 'bar');
-  ee.emit('foo', 'bar', 'baz');
-  ee.emit('foo', 'bar', 'baz', 'boom');
-})
-suite.add('contra/emitter', () => {
-  ce.emit('foo');
-  ce.emit('foo', 'bar');
-  ce.emit('foo', 'bar', 'baz');
-  ce.emit('foo', 'bar', 'baz', 'boom');
-})
+if (run === "all" || run === "important") {
+  suite.add('Native Event Emitter', () => {
+    ee1.emit('foo');
+    ee1.emit('foo', 'bar');
+    ee1.emit('foo', 'bar', 'baz');
+    ee1.emit('foo', 'bar', 'baz', 'boom');
+  })
+  suite.add('EventEmitter3', () => {
+    ee3.emit('foo');
+    ee3.emit('foo', 'bar');
+    ee3.emit('foo', 'bar', 'baz');
+    ee3.emit('foo', 'bar', 'baz', 'boom');
+  })
+}
+if (run === "all") {
+  suite.add('EventEmitter2', () => {
+    ee2.emit('foo');
+    ee2.emit('foo', 'bar');
+    ee2.emit('foo', 'bar', 'baz');
+    ee2.emit('foo', 'bar', 'baz', 'boom');
+  })
+
+  suite.add('Drip', () => {
+    drip.emit('foo');
+    drip.emit('foo', 'bar');
+    drip.emit('foo', 'bar', 'baz');
+    drip.emit('foo', 'bar', 'baz', 'boom');
+  })
+  suite.add('fastemitter', () => {
+    fe.emit('foo');
+    fe.emit('foo', 'bar');
+    fe.emit('foo', 'bar', 'baz');
+    fe.emit('foo', 'bar', 'baz', 'boom');
+  })
+  suite.add('event-emitter', () => {
+    ee.emit('foo');
+    ee.emit('foo', 'bar');
+    ee.emit('foo', 'bar', 'baz');
+    ee.emit('foo', 'bar', 'baz', 'boom');
+  })
+  suite.add('contra/emitter', () => {
+    ce.emit('foo');
+    ce.emit('foo', 'bar');
+    ce.emit('foo', 'bar', 'baz');
+    ce.emit('foo', 'bar', 'baz', 'boom');
+  })
+}
 suite.add('zod-pubsub', () => {
   eeZod.publish('empty', {});
   eeZod.publish('oneArg', { foo: 'foo' });
@@ -97,4 +103,5 @@ suite.on('cycle', (e: any) => {
 suite.on('complete', () => {
   console.log('Fastest is %s', suite.filter('fastest').map('name')[0]);
 })
+console.log("Running Benchmark: context")
 suite.run({ async: true });

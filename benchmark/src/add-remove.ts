@@ -13,6 +13,7 @@ import FE from 'fastemitter';
 import { pubSub } from 'zod-pubsub';
 import { events } from './_events';
 import crypto from "node:crypto"
+import { run } from "./options";
 
 function handle() {
   if (arguments.length > 100) console.log('damn');
@@ -32,34 +33,38 @@ const eeZod = pubSub({
 
 const suite = new Benchmark.Suite
 
-suite.add('Native Event Emitter', () => {
-  ee1.on('foo', handle);
-  ee1.removeListener('foo', handle);
-})
-suite.add('EventEmitter2', () => {
-  ee2.on('foo', handle);
-  ee2.removeListener('foo', handle);
-})
-suite.add('EventEmitter3', () => {
-  ee3.on('foo', handle);
-  ee3.removeListener('foo', handle);
-})
-suite.add('Drip', () => {
-  drip.on('foo', handle);
-  drip.removeListener('foo', handle);
-})
-suite.add('fastemitter', () => {
-  fe.on('foo', handle);
-  fe.removeListener('foo', handle);
-})
-suite.add('event-emitter', () => {
-  ee.on('foo', handle);
-  ee.off('foo', handle);
-})
-suite.add('contra/emitter', () => {
-  ce.on('foo', handle);
-  ce.off('foo', handle);
-})
+if (run === "all" || run === "important") {
+  suite.add('Native Event Emitter', () => {
+    ee1.on('foo', handle);
+    ee1.removeListener('foo', handle);
+  })
+  suite.add('EventEmitter3', () => {
+    ee3.on('foo', handle);
+    ee3.removeListener('foo', handle);
+  })
+}
+if (run === "all") {
+  suite.add('EventEmitter2', () => {
+    ee2.on('foo', handle);
+    ee2.removeListener('foo', handle);
+  })
+  suite.add('Drip', () => {
+    drip.on('foo', handle);
+    drip.removeListener('foo', handle);
+  })
+  suite.add('fastemitter', () => {
+    fe.on('foo', handle);
+    fe.removeListener('foo', handle);
+  })
+  suite.add('event-emitter', () => {
+    ee.on('foo', handle);
+    ee.off('foo', handle);
+  })
+  suite.add('contra/emitter', () => {
+    ce.on('foo', handle);
+    ce.off('foo', handle);
+  })
+}
 suite.add('zod-pubsub', () => {
   const unSub = eeZod.listen('foo', handle);
   unSub();
@@ -70,4 +75,5 @@ suite.on('cycle', (e: any) => {
 suite.on('complete', () => {
   console.log('Fastest is %s', suite.filter('fastest').map('name')[0]);
 })
+console.log("Running Benchmark: add-remove")
 suite.run({ async: true });

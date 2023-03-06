@@ -13,6 +13,7 @@ import FE from 'fastemitter';
 import { pubSub } from 'zod-pubsub';
 import { events } from './_events';
 import crypto from "node:crypto"
+import { run } from "./options";
 
 function foo() {
   if (arguments.length > 100) console.log('damn');
@@ -48,41 +49,46 @@ for (let i = 0; i < 10; i++) {
 
 const suite = new Benchmark.Suite;
 
-suite.add('Native Event Emitter', function() {
-  for (let i = 0; i < 10; i++) {
-    ee1.emit('event:' + i);
-  }
-})
-suite.add('EventEmitter2', function() {
-  for (let i = 0; i < 10; i++) {
-    ee2.emit('event:' + i);
-  }
-})
-suite.add('EventEmitter3', function() {
-  for (let i = 0; i < 10; i++) {
-    ee3.emit('event:' + i);
-  }
-})
-suite.add('Drip', function() {
-  for (let i = 0; i < 10; i++) {
-    drip.emit('event:' + i);
-  }
-})
-suite.add('fastemitter', function() {
-  for (let i = 0; i < 10; i++) {
-    fe.emit('event:' + i);
-  }
-})
-suite.add('event-emitter', function() {
-  for (let i = 0; i < 10; i++) {
-    ee.emit('event:' + i);
-  }
-})
-suite.add('contra/emitter', function() {
-  for (let i = 0; i < 10; i++) {
-    ce.emit('event:' + i);
-  }
-})
+if (run === "all" || run === "important") {
+  suite.add('Native Event Emitter', function() {
+    for (let i = 0; i < 10; i++) {
+      ee1.emit('event:' + i);
+    }
+  })
+  suite.add('EventEmitter3', function() {
+    for (let i = 0; i < 10; i++) {
+      ee3.emit('event:' + i);
+    }
+  })
+}
+if (run === "all") {
+  suite.add('EventEmitter2', function() {
+    for (let i = 0; i < 10; i++) {
+      ee2.emit('event:' + i);
+    }
+  })
+
+  suite.add('Drip', function() {
+    for (let i = 0; i < 10; i++) {
+      drip.emit('event:' + i);
+    }
+  })
+  suite.add('fastemitter', function() {
+    for (let i = 0; i < 10; i++) {
+      fe.emit('event:' + i);
+    }
+  })
+  suite.add('event-emitter', function() {
+    for (let i = 0; i < 10; i++) {
+      ee.emit('event:' + i);
+    }
+  })
+  suite.add('contra/emitter', function() {
+    for (let i = 0; i < 10; i++) {
+      ce.emit('event:' + i);
+    }
+  })
+}
 suite.add('zod-pubsub', function() {
   for (let i = 0; i < 10; i++) {
     // @ts-expect-error ts not happy with us
@@ -95,4 +101,5 @@ suite.on('cycle', (e: any) => {
 suite.on('complete', () => {
   console.log('Fastest is %s', suite.filter('fastest').map('name')[0]);
 })
+console.log("Running Benchmark: hundreds")
 suite.run({ async: true });
