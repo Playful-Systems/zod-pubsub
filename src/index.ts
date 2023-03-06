@@ -39,7 +39,7 @@ export type inferEvents<pubsub extends ReturnType<typeof pubSub>> = pubsub["_eve
 export const pubSub = <Events extends PubSubEvents>(config: PubSubConfig<Events>) => {
 
   type TopicName = keyof Events
-  type EventCallback<Topic extends TopicName = TopicName> = (data: z.infer<Events[Topic]>, topic: Topic, options: { publishId: string, listenerId: string }) => void | Promise<void>
+  type EventCallback<Topic extends TopicName = TopicName> = (data: z.infer<Events[Topic]>, topic: Topic, options: { publishId: string, listenerId: string }) => void | Promise<void> | any | Promise<any>
 
   type ListenerId = string
   const listeners = new Map<keyof Events, Map<ListenerId, EventCallback>>()
