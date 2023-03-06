@@ -18,6 +18,8 @@ export default scripts({
   ]),
   "new-version": "changeset",
   "benchmark": sequential([
+    "pnpm build",
+    "pnpm link .",
     command({
       run: "pnpm install",
       cwd: "benchmark"
