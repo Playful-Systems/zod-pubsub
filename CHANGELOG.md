@@ -1,5 +1,12 @@
 # zod-pubsub
 
+## 2.0.1
+
+### Patch Changes
+
+- 115efa8: Update zod version to 3.21.0
+- 2ab1412: Handler can return anything
+
 ## 2.0.0
 
 ### Major Changes
