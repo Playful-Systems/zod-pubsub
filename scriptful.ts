@@ -19,6 +19,10 @@ export default scripts({
   "new-version": "changeset",
   "benchmark": sequential([
     command({
+      run: "pnpm install",
+      cwd: "benchmark"
+    }),
+    command({
       run: "tsc",
       cwd: "benchmark"
     }),
